@@ -1,0 +1,47 @@
+diff --git a/dlls/ntdll/unix/registry.c b/dlls/ntdll/unix/registry.c
+index 9f45f73..88dd01a 100644
+--- a/dlls/ntdll/unix/registry.c
++++ b/dlls/ntdll/unix/registry.c
+@@ -493,11 +493,21 @@ NTSTATUS WINAPI NtQueryValueKey( HANDLE handle, const UNICODE_STRING *name,
+     unsigned int ret;
+     UCHAR *data_ptr;
+     unsigned int fixed_size, min_size;
++    UNICODE_STRING trimmed;
+ 
+     TRACE( "(%p,%s,%d,%p,%d)\n", handle, debugstr_us(name), info_class, info, length );
+ 
+     if (name->Length > MAX_VALUE_LENGTH) return STATUS_OBJECT_NAME_NOT_FOUND;
+ 
++    /* Trailing NULs are ignored; embedded NULs remain part of the value name. */
++    if (!(name->Length % sizeof(WCHAR)))
++    {
++        trimmed = *name;
++        while (trimmed.Length && !trimmed.Buffer[trimmed.Length / sizeof(WCHAR) - 1])
++            trimmed.Length -= sizeof(WCHAR);
++        name = &trimmed;
++    }
++
+     /* compute the length we want to retrieve */
+     switch(info_class)
+     {
+@@ -575,11 +585,20 @@ NTSTATUS WINAPI NtSetValueKey( HANDLE key, const UNICODE_STRING *name, ULONG ind
+                                ULONG type, const void *data, ULONG count )
+ {
+     unsigned int ret;
++    UNICODE_STRING trimmed;
+ 
+     TRACE( "(%p,%s,%d,%p,%d)\n", key, debugstr_us(name), type, data, count );
+ 
+     if (name->Length > MAX_VALUE_LENGTH) return STATUS_INVALID_PARAMETER;
+ 
++    if (!(name->Length % sizeof(WCHAR)))
++    {
++        trimmed = *name;
++        while (trimmed.Length && !trimmed.Buffer[trimmed.Length / sizeof(WCHAR) - 1])
++            trimmed.Length -= sizeof(WCHAR);
++        name = &trimmed;
++    }
++
+     SERVER_START_REQ( set_key_value )
+     {
+         req->hkey    = wine_server_obj_handle( key );

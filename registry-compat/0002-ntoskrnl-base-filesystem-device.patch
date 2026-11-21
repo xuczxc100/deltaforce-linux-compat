@@ -1,0 +1,51 @@
+diff --git a/dlls/ntoskrnl.exe/ntoskrnl.c b/dlls/ntoskrnl.exe/ntoskrnl.c
+index 47787ca..8065e6c 100644
+--- a/dlls/ntoskrnl.exe/ntoskrnl.c
++++ b/dlls/ntoskrnl.exe/ntoskrnl.c
+@@ -1953,6 +1953,21 @@ NTSTATUS FASTCALL IofCallDriver( DEVICE_OBJECT *device, IRP *irp )
+ }
+ 
+ 
++/***********************************************************************
++ *           IoGetBaseFileSystemDeviceObject    (NTOSKRNL.EXE.@)
++ */
++PDEVICE_OBJECT WINAPI IoGetBaseFileSystemDeviceObject( PFILE_OBJECT file )
++{
++    PDEVICE_OBJECT device = file->DeviceObject;
++
++    if (file->Vpb && file->Vpb->DeviceObject)
++        return file->Vpb->DeviceObject;
++    if (device && !(file->Flags & FO_DIRECT_DEVICE_OPEN)
++        && device->Vpb && device->Vpb->DeviceObject)
++        return device->Vpb->DeviceObject;
++    return device;
++}
++
+ /***********************************************************************
+  *           IoGetRelatedDeviceObject    (NTOSKRNL.EXE.@)
+  */
+diff --git a/dlls/ntoskrnl.exe/ntoskrnl.exe.spec b/dlls/ntoskrnl.exe/ntoskrnl.exe.spec
+index 785f511..0de2270 100644
+--- a/dlls/ntoskrnl.exe/ntoskrnl.exe.spec
++++ b/dlls/ntoskrnl.exe/ntoskrnl.exe.spec
+@@ -401,7 +401,7 @@
+ @ stdcall IoFreeWorkItem(ptr)
+ @ stdcall IoGetAttachedDevice(ptr)
+ @ stdcall IoGetAttachedDeviceReference(ptr)
+-@ stub IoGetBaseFileSystemDeviceObject
++@ stdcall IoGetBaseFileSystemDeviceObject(ptr)
+ @ stub IoGetBootDiskInformation
+ @ stdcall IoGetConfigurationInformation()
+ @ stdcall IoGetCurrentProcess()
+diff --git a/include/ddk/wdm.h b/include/ddk/wdm.h
+index 2e49a47..750979a 100644
+--- a/include/ddk/wdm.h
++++ b/include/ddk/wdm.h
+@@ -1926,6 +1926,7 @@ NTSTATUS  WINAPI IoGetDeviceObjectPointer(UNICODE_STRING*,ACCESS_MASK,PFILE_OBJE
+ NTSTATUS  WINAPI IoGetDeviceProperty(PDEVICE_OBJECT,DEVICE_REGISTRY_PROPERTY,ULONG,PVOID,PULONG);
+ NTSTATUS  WINAPI IoGetDevicePropertyData(PDEVICE_OBJECT,const DEVPROPKEY*,LCID,ULONG,ULONG,void*,ULONG*,DEVPROPTYPE*);
+ PVOID     WINAPI IoGetDriverObjectExtension(PDRIVER_OBJECT,PVOID);
++PDEVICE_OBJECT WINAPI IoGetBaseFileSystemDeviceObject(PFILE_OBJECT);
+ PDEVICE_OBJECT WINAPI IoGetRelatedDeviceObject(PFILE_OBJECT);
+ void      WINAPI IoGetStackLimits(ULONG_PTR*,ULONG_PTR*);
+ void      WINAPI IoInitializeIrp(IRP*,USHORT,CCHAR);

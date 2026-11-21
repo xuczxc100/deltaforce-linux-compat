@@ -1,0 +1,3 @@
+# Keep unified-diff context and the upstream license text verbatim.
+*.patch -whitespace
+LICENSES/* -whitespace

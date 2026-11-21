@@ -1,0 +1,4 @@
+LIBRARY regcompat.dll
+EXPORTS
+    Query
+    Set

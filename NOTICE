@@ -1,0 +1,10 @@
+Original project code is covered by LICENSE (MIT).
+
+The candidate Wine source diffs in registry-compat/*.patch include context
+from the Wine project and are provided under LGPL-2.1-or-later. Their Wine
+copyright notices remain in the upstream files to which the patches apply.
+The Wine license text is included in LICENSES/Wine-LGPL-2.1.txt.
+
+MinGW-w64 headers and compiler tools are build dependencies, not redistributed
+in this repository. The game, its publisher SDKs, anti-cheat binaries, ICU
+binaries, and compiled Wine runtime files are not included.

@@ -1,0 +1,12 @@
+LIBRARY fwpkclnt.sys
+EXPORTS
+    FwpmEngineOpen0
+    FwpmEngineClose0
+    FwpmSubLayerAdd0
+    FwpmSubLayerDeleteByKey0
+    FwpmCalloutAdd0
+    FwpmCalloutDeleteById0
+    FwpmFilterAdd0
+    FwpmFilterDeleteById0
+    FwpsCalloutRegister1
+    FwpsCalloutUnregisterById0

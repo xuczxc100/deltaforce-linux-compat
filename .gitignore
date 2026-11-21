@@ -1,0 +1,15 @@
+**/build/
+**/__pycache__/
+*.pyc
+*.exe
+*.dll
+*.sys
+*.o
+*.a
+*.log
+*.dmp
+*.png
+*.zip
+*.tar*
+bottle*.yml
+*-added-files.json
