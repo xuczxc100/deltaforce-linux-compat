@@ -70,3 +70,24 @@ python3 tools/install_launcher_fonts.py /path/to/private-runner /path/to/experim
 - 仍出現在診斷日誌中的未實作 API，例如 `InbvAcquireDisplayOwnership` 與 `__CxxFrameHandler4`，對後續流程的影響。
 
 若再次出現相同問題，應先保留這次可用環境的副本，再逐項比較字型、執行庫與登錄狀態。新增回報只需包含去識別化的錯誤與最後到達的畫面，不要公開原始啟動參數或完整日誌。
+
+## 後續：進入對局時閃退與執行庫修復
+
+使用者隨後回報進入對局、載入地圖時閃退。引擎日誌的致命錯誤時間為 **18:18:28（UTC+8）**；移除多餘瓶子的清理時間為 **18:19:56**。這次已記錄的崩潰早於清理操作，共用遊戲與啟動器路徑經檢查仍完整。
+
+分析發現，多個遊戲相依 DLL 與同版本 ICU 需要 `VCRUNTIME140_1.dll` 的 `__CxxFrameHandler4`。還原副本當時使用的是 Wine 內建版本；其診斷日誌出現對 CRT 私有 API 的未實作呼叫。但這些訊息本身不足以證明就是主遊戲致命錯誤的唯一原因。
+
+在備份現有執行庫與登錄檔後，執行下列修復：
+
+1. 停止已閃退遊戲所屬瓶子殘留的背景程序。
+2. 在同一個可用瓶子成功安裝官方 Microsoft **x64 Visual C++ v14 Runtime 14.52.37029**，不回退已補入的 Tahoma 字型。
+3. 明確指定 `vcruntime140`、`vcruntime140_1`、`msvcp140` 為 `native,builtin` 載入順序。
+4. 透過官方啟動器重開，並從執行中遊戲的模組映射確認載入瓶子 `system32` 的 Microsoft 執行庫。
+
+安裝程式第一次在殘留背景程序仍執行時遇到提權子程序連線失敗；完整停止該瓶子的背景程序後，重新安裝以 `0x0` 結束。應以安裝日誌確認成功，而非只確認安裝程式曾被執行。
+
+官方下載來源：[Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/)。本專案不散布 Microsoft DLL 或安裝程式。
+
+修復後直接觀察到重新載入地圖至 82%，使用者隨後回覆「正常了」。這是一次載入恢復與使用者確認，尚不足以保證完整對局或長時間穩定性。下次啟動已恢復 `WINEDEBUG=-all`，沒有中斷使用者當時正在執行的遊戲。
+
+另將 `NtCreateRegistryTransaction` 的引用定位到遊戲附帶的 `WevtUtil.exe` 效能輔助程式。這項未實作 API 與其他輔助程序錯誤仍需分開調查；不能將所有日誌中的 `aborting` 都解讀為主遊戲閃退，也不能宣稱所有 Wine API 缺口已修復。

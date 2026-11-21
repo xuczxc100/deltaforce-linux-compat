@@ -12,6 +12,8 @@ Development disclosure: this work is substantially AI-assisted. The recorded bui
 
 Detailed incident record / 完整問題紀錄：[2026-11-21 launcher recovery](docs/2026-11-21-launcher-recovery.md).
 
+A later map-load crash was followed by installing the official Microsoft x64 Visual C++ v14 runtime in the recovered prefix and selecting native VC DLLs. The user again confirmed normal operation after reopening; full-match and long-session stability remain unverified. The incident record distinguishes this from the earlier blank-launcher recovery.
+
 ## What is included
 
 | Component | Purpose |
