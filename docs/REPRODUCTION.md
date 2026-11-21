@@ -82,6 +82,16 @@ The `ntdll.dll` case reproduces the original registry discrepancy; its failing c
 
 The programs write their results to `C:\fwpkclnt-probe`. Registry tests create a temporary per-process key under the current user's Software hive and remove it on normal completion.
 
+## Launcher font recovery
+
+A later blank-launcher incident recovered in an isolated prefix after restoring the pre-repair registry/runtime state and adding the same runner's bundled Tahoma fonts. With the experimental prefix stopped, copy only missing matching fonts:
+
+```sh
+python3 tools/install_launcher_fonts.py /path/to/private-runner /path/to/experimental-prefix
+```
+
+The helper refuses conflicting existing files and distributes no font binaries. The main menu was subsequently observed and the user confirmed normal operation. Other state was restored during diagnosis, so the font change has not been isolated as the sole cause.
+
 ## 6. Start through the official launcher
 
 Use the official Garena launcher in the same prefix. Starting the game executable directly reached a publisher SDK initialization failure in this test, while the normal launcher supplied its expected startup context.

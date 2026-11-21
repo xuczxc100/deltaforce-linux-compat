@@ -6,7 +6,7 @@ Development disclosure: this work is substantially AI-assisted. The recorded bui
 
 **Observed result:** the game reached its first-run language-selection screen after the official launcher started it, downloaded approximately 93 MB of game updates, and completed shader warm-up. The game log reported `ACE Init Success`.
 
-**Reopening failure (2026-11-21):** a subsequent test remained at a blank launcher window, and the engine log recorded a later fatal error after entering `Iris_Entry`. The initial startup result has not been reproduced reliably. Installing the official x86/x64 Visual C++ v14 runtimes did not resolve reopening. The exact cause remains undetermined.
+**Recovery follow-up (2026-11-21):** after a blank-launcher failure, an isolated prefix restored to the pre-repair registry/runtime state reopened successfully after copying the same Wine runner's bundled `tahoma.ttf` and `tahomabd.ttf` into `C:\windows\Fonts`. The official launcher started the game and its main menu was observed; the local user confirmed normal operation. This does not isolate the font change as the sole cause, or establish long-session stability. See [the font helper](tools/install_launcher_fonts.py). A previous `Iris_Entry` fatal error remains recorded as an unresolved stability concern.
 
 **Online matchmaking and sustained gameplay have not been tested. This is not official Linux support, a complete anti-cheat implementation, or a finished compatibility release.**
 
@@ -57,7 +57,7 @@ See [reproduction and installation notes](docs/REPRODUCTION.md) before applying 
 | File-system device-object selection | 9 checks, 0 failures |
 | ICU function resolution and real Unicode conversion | 7 checks, 0 failures |
 | Diagnostic WFP provider's failure contract | 18 checks, 0 failures |
-| Game startup | First-run language selection reached |
+| Game startup | First-run UI initially; main menu reached in recovery follow-up |
 | Online match / long-running session | Not tested |
 
 The registry expectations are based on the documented/researched Native API behavior, including [NtQueryValueKey](https://ntdoc.m417z.com/ntqueryvaluekey) and [NtSetValueKey](https://ntdoc.m417z.com/ntsetvaluekey). These test cases have **not** been cross-run on a native Windows installation in this project.
@@ -84,7 +84,7 @@ Original tools, diagnostic providers, and test code are MIT licensed. The Wine s
 
 ## 繁體中文
 
-這是 Garena《三角洲行動》的 Linux／Wine 相容性實驗原始碼。曾在本機進入首次語言設定畫面，但後續重開會卡在空白啟動器，遊戲日誌也曾在進入 `Iris_Entry` 後記錄致命錯誤。**目前無法可靠重現啟動成功，尚未驗證線上對戰與長時間穩定性**。
+這是 Garena《三角洲行動》的 Linux／Wine 相容性實驗原始碼。曾在本機進入首次語言設定畫面，後續發生空白啟動器問題。還原修復前的測試環境並補入同一套 Wine 隨附的 Tahoma 字型後，已重新進入遊戲主介面，使用者也確認恢復正常。這次恢復尚不足以證明字型是唯一原因。**尚未獨立驗證線上對戰與長時間穩定性**；先前的 `Iris_Entry` 致命錯誤仍列為已知問題。
 
 內容包含登錄查詢／寫入的尾端 NUL 相容性修正、檔案系統裝置物件選擇、Wine 執行環境修補工具、ICU 相依程式庫安裝工具，以及回傳「不支援」的 WFP 診斷模組。WFP 診斷模組沒有實作封包過濾。
 
