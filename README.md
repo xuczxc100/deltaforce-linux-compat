@@ -10,6 +10,8 @@ Development disclosure: this work is substantially AI-assisted. The recorded bui
 
 **Online matchmaking and sustained gameplay have not been tested. This is not official Linux support, a complete anti-cheat implementation, or a finished compatibility release.**
 
+Detailed incident record / 完整問題紀錄：[2026-11-21 launcher recovery](docs/2026-11-21-launcher-recovery.md).
+
 ## What is included
 
 | Component | Purpose |
