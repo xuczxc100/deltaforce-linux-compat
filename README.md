@@ -6,6 +6,8 @@ Development disclosure: this work is substantially AI-assisted. The recorded bui
 
 **Observed result:** the game reached its first-run language-selection screen after the official launcher started it, downloaded approximately 93 MB of game updates, and completed shader warm-up. The game log reported `ACE Init Success`.
 
+**Reopening failure (2026-11-21):** a subsequent test remained at a blank launcher window, and the engine log recorded a later fatal error after entering `Iris_Entry`. The initial startup result has not been reproduced reliably. Installing the official x86/x64 Visual C++ v14 runtimes did not resolve reopening. The exact cause remains undetermined.
+
 **Online matchmaking and sustained gameplay have not been tested. This is not official Linux support, a complete anti-cheat implementation, or a finished compatibility release.**
 
 ## What is included
@@ -82,7 +84,7 @@ Original tools, diagnostic providers, and test code are MIT licensed. The Wine s
 
 ## 繁體中文
 
-這是 Garena《三角洲行動》的 Linux／Wine 相容性實驗原始碼。目前本機已進入首次語言設定畫面；**尚未驗證線上對戰與長時間穩定性**。
+這是 Garena《三角洲行動》的 Linux／Wine 相容性實驗原始碼。曾在本機進入首次語言設定畫面，但後續重開會卡在空白啟動器，遊戲日誌也曾在進入 `Iris_Entry` 後記錄致命錯誤。**目前無法可靠重現啟動成功，尚未驗證線上對戰與長時間穩定性**。
 
 內容包含登錄查詢／寫入的尾端 NUL 相容性修正、檔案系統裝置物件選擇、Wine 執行環境修補工具、ICU 相依程式庫安裝工具，以及回傳「不支援」的 WFP 診斷模組。WFP 診斷模組沒有實作封包過濾。
 
