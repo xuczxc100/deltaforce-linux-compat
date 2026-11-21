@@ -1,0 +1,112 @@
+diff --git a/dlls/win32u/win32syscalls.h b/dlls/win32u/win32syscalls.h
+index 132ac47..9e63349 100644
+--- a/dlls/win32u/win32syscalls.h
++++ b/dlls/win32u/win32syscalls.h
+@@ -1115,7 +1115,7 @@
+     SYSCALL_ENTRY( 0x1457, NtUserGetUpdatedClipboardFormats, 12 ) \
+     SYSCALL_ENTRY( 0x1458, NtUserGetWOWClass, 0 ) \
+     SYSCALL_ENTRY( 0x1459, NtUserGetWinStationInfo, 0 ) \
+-    SYSCALL_ENTRY( 0x145a, NtUserGetWindowBand, 0 ) \
++    SYSCALL_ENTRY( 0x145a, NtUserGetWindowBand, 8 ) \
+     SYSCALL_ENTRY( 0x145b, NtUserGetWindowCompositionAttribute, 0 ) \
+     SYSCALL_ENTRY( 0x145c, NtUserGetWindowCompositionInfo, 0 ) \
+     SYSCALL_ENTRY( 0x145d, NtUserGetWindowContextHelpId, 4 ) \
+@@ -2657,7 +2657,7 @@
+     SYSCALL_ENTRY( 0x1457, NtUserGetUpdatedClipboardFormats, 24 ) \
+     SYSCALL_ENTRY( 0x1458, NtUserGetWOWClass, 0 ) \
+     SYSCALL_ENTRY( 0x1459, NtUserGetWinStationInfo, 0 ) \
+-    SYSCALL_ENTRY( 0x145a, NtUserGetWindowBand, 0 ) \
++    SYSCALL_ENTRY( 0x145a, NtUserGetWindowBand, 16 ) \
+     SYSCALL_ENTRY( 0x145b, NtUserGetWindowCompositionAttribute, 0 ) \
+     SYSCALL_ENTRY( 0x145c, NtUserGetWindowCompositionInfo, 0 ) \
+     SYSCALL_ENTRY( 0x145d, NtUserGetWindowContextHelpId, 8 ) \
+@@ -3855,7 +3855,6 @@
+     SYSCALL_STUB( NtUserGetUnpredictedMessagePos ) \
+     SYSCALL_STUB( NtUserGetWOWClass ) \
+     SYSCALL_STUB( NtUserGetWinStationInfo ) \
+-    SYSCALL_STUB( NtUserGetWindowBand ) \
+     SYSCALL_STUB( NtUserGetWindowCompositionAttribute ) \
+     SYSCALL_STUB( NtUserGetWindowCompositionInfo ) \
+     SYSCALL_STUB( NtUserGetWindowFeedbackSetting ) \
+diff --git a/dlls/win32u/win32u.spec b/dlls/win32u/win32u.spec
+index 2c40901..2278b34 100644
+--- a/dlls/win32u/win32u.spec
++++ b/dlls/win32u/win32u.spec
+@@ -1113,7 +1113,7 @@
+ @ stdcall -syscall NtUserGetUpdatedClipboardFormats(ptr long ptr)
+ @ stub -syscall NtUserGetWOWClass
+ @ stub -syscall NtUserGetWinStationInfo
+-@ stub -syscall NtUserGetWindowBand
++@ stdcall -syscall NtUserGetWindowBand(long ptr)
+ @ stub -syscall NtUserGetWindowCompositionAttribute
+ @ stub -syscall NtUserGetWindowCompositionInfo
+ @ stdcall -syscall NtUserGetWindowContextHelpId(long)
+diff --git a/dlls/win32u/window.c b/dlls/win32u/window.c
+index 214b70b..04b5b31 100644
+--- a/dlls/win32u/window.c
++++ b/dlls/win32u/window.c
+@@ -6739,6 +6739,33 @@ BOOL WINAPI NtUserIsChildWindowDpiMessageEnabled( HWND hwnd )
+     return FALSE;
+ }
+ 
++/*****************************************************************
++ *           NtUserGetWindowBand (win32u.@)
++ */
++BOOL WINAPI NtUserGetWindowBand( HWND hwnd, DWORD *band )
++{
++    DWORD desktop_band = 1; /* ZBID_DESKTOP: Wine implements no other window bands. */
++    SIZE_T written = 0;
++
++    if (!NtUserQueryWindow( hwnd, WindowProcess ))
++    {
++        RtlSetLastWin32Error( ERROR_INVALID_WINDOW_HANDLE );
++        return FALSE;
++    }
++    if (!band)
++    {
++        RtlSetLastWin32Error( ERROR_NOACCESS );
++        return FALSE;
++    }
++    if (NtWriteVirtualMemory( GetCurrentProcess(), band, &desktop_band,
++                              sizeof(desktop_band), &written ) || written != sizeof(desktop_band))
++    {
++        RtlSetLastWin32Error( ERROR_NOACCESS );
++        return FALSE;
++    }
++    return TRUE;
++}
++
+ /*****************************************************************
+  *           NtUserGetWindowDisplayAffinity (win32u.@)
+  */
+diff --git a/dlls/wow64win/user.c b/dlls/wow64win/user.c
+index 0d549da..58f80f3 100644
+--- a/dlls/wow64win/user.c
++++ b/dlls/wow64win/user.c
+@@ -3181,6 +3181,14 @@ NTSTATUS WINAPI wow64_NtUserGetRawInputDeviceList( UINT *args )
+     }
+ }
+ 
++NTSTATUS WINAPI wow64_NtUserGetWindowBand( UINT *args )
++{
++    HWND hwnd = get_handle( &args );
++    DWORD *band = get_ptr( &args );
++
++    return NtUserGetWindowBand( hwnd, band );
++}
++
+ NTSTATUS WINAPI wow64_NtUserGetWindowDisplayAffinity( UINT *args )
+ {
+     HWND hwnd = get_handle( &args );
+diff --git a/include/ntuser.h b/include/ntuser.h
+index 85cbf2b..4cd640a 100644
+--- a/include/ntuser.h
++++ b/include/ntuser.h
+@@ -909,6 +909,7 @@ W32KAPI BOOL    WINAPI NtUserGetUpdatedClipboardFormats( UINT *formats, UINT siz
+ W32KAPI BOOL    WINAPI NtUserGetUpdateRect( HWND hwnd, RECT *rect, BOOL erase );
+ W32KAPI DWORD   WINAPI NtUserGetWindowContextHelpId( HWND hwnd );
+ W32KAPI HDC     WINAPI NtUserGetWindowDC( HWND hwnd );
++W32KAPI BOOL    WINAPI NtUserGetWindowBand( HWND hwnd, DWORD *band );
+ W32KAPI BOOL    WINAPI NtUserGetWindowDisplayAffinity( HWND hwnd, DWORD *affinity );
+ W32KAPI BOOL    WINAPI NtUserGetWindowPlacement( HWND hwnd, WINDOWPLACEMENT *placement );
+ W32KAPI int     WINAPI NtUserGetWindowRgnEx( HWND hwnd, HRGN hrgn, UINT unk );

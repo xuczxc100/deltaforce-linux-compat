@@ -12,6 +12,7 @@ Use these environment values for the recorded configuration:
 WINEARCH=wow64
 WINEESYNC=0
 WINEFSYNC=0
+WINEDEBUG=-all
 ```
 
 `WINEARCH=wow64` selects Wine's newer WoW64 path for the 32-bit launcher. The prefix architecture remains 64-bit. The synchronization settings above reproduce the test; other settings have not been validated here.
@@ -94,6 +95,8 @@ The helper refuses conflicting existing files and distributes no font binaries. 
 
 ## 6. Start through the official launcher
 
+The initial startup sequence below preceded discovery of a repeatable five-minute syscall failure. Apply the [window-band compatibility step](../window-band-compat/README.md) to the private runner as well. Its x64 checks include direct syscalls; changing only a Windows DLL export would not provide the same coverage.
+
 Use the official Garena launcher in the same prefix. Starting the game executable directly reached a publisher SDK initialization failure in this test, while the normal launcher supplied its expected startup context.
 
 The observed sequence after the fixes was:
@@ -105,7 +108,7 @@ The observed sequence after the fixes was:
 5. The game downloaded approximately 93 MB of updates and completed shader warm-up.
 6. First-run language selection appeared.
 
-No online matchmaking test was performed. There is no claim that future updates, every anti-cheat component, or a long gameplay session will work.
+After the window-band follow-up, live online gameplay was observed past the earlier approximately 300-second failure point. A completed match and long-session stability have not been established. There is no claim that future updates or every anti-cheat component will work.
 
 ## Source diffs
 

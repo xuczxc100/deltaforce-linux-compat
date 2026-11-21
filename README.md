@@ -4,15 +4,15 @@ Source-only Wine compatibility experiments developed while investigating the Gar
 
 Development disclosure: this work is substantially AI-assisted. The recorded builds and component checks were executed locally; independent review and native Windows conformance testing are still needed.
 
-**Observed result:** the game reached its first-run language-selection screen after the official launcher started it, downloaded approximately 93 MB of game updates, and completed shader warm-up. The game log reported `ACE Init Success`.
+**Latest observed result (2026-11-21):** live online gameplay was observed after implementing the missing x64 `NtUserGetWindowBand` syscall in a private Wine runner. The process has passed the approximately 300-second failure point reproduced by three previous runs, with no new ACE dump at that point. The in-game HUD showed 60 FPS. See [the window-band implementation and checks](window-band-compat/README.md).
 
-**Recovery follow-up (2026-11-21):** after a blank-launcher failure, an isolated prefix restored to the pre-repair registry/runtime state reopened successfully after copying the same Wine runner's bundled `tahoma.ttf` and `tahomabd.ttf` into `C:\windows\Fonts`. The official launcher started the game and its main menu was observed; the local user confirmed normal operation. This does not isolate the font change as the sole cause, or establish long-session stability. See [the font helper](tools/install_launcher_fonts.py). A previous `Iris_Entry` fatal error remains recorded as an unresolved stability concern.
+Earlier work reached first-run setup, recovered a blank launcher after restoring prefix state and adding the bundled Tahoma fonts, and installed the official native x64 Visual C++ runtime. These startup recoveries did **not** by themselves fix the later five-minute failure; dump analysis identified the missing Wine window-band syscall.
 
-**Online matchmaking and sustained gameplay have not been tested. This is not official Linux support, a complete anti-cheat implementation, or a finished compatibility release.**
+**Completed-match and long-session stability remain unverified. This is not official Linux support, a complete anti-cheat implementation, or a finished compatibility release.**
 
 Detailed incident record / 完整問題紀錄：[2026-11-21 launcher recovery](docs/2026-11-21-launcher-recovery.md).
 
-A later map-load crash was followed by installing the official Microsoft x64 Visual C++ v14 runtime in the recovered prefix and selecting native VC DLLs. The user again confirmed normal operation after reopening; full-match and long-session stability remain unverified. The incident record distinguishes this from the earlier blank-launcher recovery.
+The [font helper](tools/install_launcher_fonts.py) and [local dump metadata reader](tools/inspect_ace_dump.py) support reproduction and diagnosis without distributing font binaries or raw dumps.
 
 ## What is included
 
@@ -23,6 +23,7 @@ A later map-load crash was followed by installing the official Microsoft x64 Vis
 | Wine runtime overlay builder | Add executable x64 wrappers to a **separate Wine `ntoskrnl.exe` copy**, retaining its original code and import slots and adding unwind metadata. |
 | `fwpkclnt` diagnostic provider | Resolve ten WFP imports so that runtime use can be traced. **Every WFP operation returns `STATUS_NOT_SUPPORTED`; no packet filtering is implemented.** |
 | ICU dependency installer | Install the matching ICU DLLs already bundled with GE-Proton into an experimental prefix. |
+| Desktop window-band query | Implement the missing x64 syscall against real Wine window handles, including direct-syscall callers; preserve existing native unwind entries. |
 | Test programs and source diffs | Reproduction cases, compiler sources, and candidate upstream Wine patches. |
 
 No game executable, proprietary driver, decompiled game source, account information, token, raw runtime log, or patched Wine binary is distributed here.
@@ -35,6 +36,7 @@ No game executable, proprietary driver, decompiled game source, account informat
 - `WINEARCH=wow64` for the 32-bit Garena launcher.
 - Esync/fsync disabled for the recorded test; this is not a performance recommendation.
 - DXVK 3.1.1 and VKD3D-Proton 3.1.
+- Latest run: native x64 VC runtime 14.52.37029; `WINEDEBUG=-all`; additional MangoHud layer disabled; `VKD3D_CONFIG=no_upload_hvv,nodxr`; 60 FPS limit. These memory/performance settings do not replace the syscall fix.
 
 Directly using the Wine binaries from a Proton package is a custom setup. The results here should not be read as a supported GE-Proton configuration or a general regression report against GE-Proton.
 
@@ -43,9 +45,10 @@ Directly using the Wine binaries from a Proton package is a custom setup. The re
 On the Debian/Ubuntu environment used for this work:
 
 ```sh
-sudo apt install gcc-mingw-w64-x86-64-posix make python3
+sudo apt install gcc binutils gcc-mingw-w64-x86-64-posix make python3
 make -C registry-compat
 make -C fwpkclnt-probe
+make -C window-band-compat
 ```
 
 The device-object tests use the DDK headers shipped with MinGW-w64. See the Makefile if your distribution installs those headers elsewhere.
@@ -61,12 +64,14 @@ See [reproduction and installation notes](docs/REPRODUCTION.md) before applying 
 | File-system device-object selection | 9 checks, 0 failures |
 | ICU function resolution and real Unicode conversion | 7 checks, 0 failures |
 | Diagnostic WFP provider's failure contract | 18 checks, 0 failures |
-| Game startup | First-run UI initially; main menu reached in recovery follow-up |
-| Online match / long-running session | Not tested |
+| Window-band query, pointer safety, foreign windows and direct x64 syscalls | 60 checks, 0 failures |
+| Window-band overlay rebuilt from published sources | Output SHA-256 matches the installed local artifact |
+| Game startup and five-minute failure point | Live process and online gameplay observed past the previous failure point |
+| Completed match / long-running session | Not yet established |
 
 The registry expectations are based on the documented/researched Native API behavior, including [NtQueryValueKey](https://ntdoc.m417z.com/ntqueryvaluekey) and [NtSetValueKey](https://ntdoc.m417z.com/ntsetvaluekey). These test cases have **not** been cross-run on a native Windows installation in this project.
 
-The candidate upstream diffs were prepared against Wine commit `97027f879ba9a36dbe594720d4710818536e5433`. A full Wine build incorporating those diffs has not been tested; executed validation used the separate PE overlay and test programs described here.
+The candidate upstream diffs were prepared against Wine commit `97027f879ba9a36dbe594720d4710818536e5433`. A full Wine build incorporating those diffs has not been tested; executed validation used the isolated PE/Unix-library overlays and test programs described here.
 
 ## Important limitations
 
@@ -74,6 +79,8 @@ The candidate upstream diffs were prepared against Wine commit `97027f879ba9a36d
 - Wine's remaining kernel callbacks and driver behavior are incomplete. A successful game SDK initialization message does not establish full anti-cheat compatibility.
 - The tested startup traces did not call the diagnostic WFP exports before initialization completed. This does not establish behavior during online play.
 - Wine updates can change export locations, import layout, object behavior, and compatibility. The overlay tool validates structural assumptions and records input/output hashes; only the configuration above has been tested.
+- The executed window-band overlay covers the x64 syscall path and Wine's single desktop-band model. Its source patch includes an unvalidated WoW64 bridge; privileged Windows bands are not implemented.
+- Native Windows API conformance and full-session stability still require independent validation. GPU mapping warnings and unrelated helper-process API gaps have not all been eliminated.
 
 ## Upstream references
 
@@ -88,8 +95,8 @@ Original tools, diagnostic providers, and test code are MIT licensed. The Wine s
 
 ## 繁體中文
 
-這是 Garena《三角洲行動》的 Linux／Wine 相容性實驗原始碼。曾在本機進入首次語言設定畫面，後續發生空白啟動器問題。還原修復前的測試環境並補入同一套 Wine 隨附的 Tahoma 字型後，已重新進入遊戲主介面，使用者也確認恢復正常。這次恢復尚不足以證明字型是唯一原因。**尚未獨立驗證線上對戰與長時間穩定性**；先前的 `Iris_Entry` 致命錯誤仍列為已知問題。
+這是 Garena《三角洲行動》的 Linux／Wine 相容性實驗原始碼。後續診斷確認，三次約五分鐘後的閃退均記錄了 Wine `NtUserGetWindowBand` 未實作例外。新增底層 x64 系統呼叫實作後，已實際觀察到線上對局通過先前的五分鐘失敗點，當時遊戲內顯示 60 FPS，且沒有新增 ACE 診斷檔。**完整對局與長時間穩定性仍未完成驗證**。
 
-內容包含登錄查詢／寫入的尾端 NUL 相容性修正、檔案系統裝置物件選擇、Wine 執行環境修補工具、ICU 相依程式庫安裝工具，以及回傳「不支援」的 WFP 診斷模組。WFP 診斷模組沒有實作封包過濾。
+內容包含登錄查詢／寫入的尾端 NUL 相容性修正、檔案系統裝置物件選擇、桌面視窗 band 查詢、Wine 執行環境修補工具、ICU／字型安裝工具，以及回傳「不支援」的 WFP 診斷模組。視窗查詢通過 60 項本機檢查，含直接 syscall、跨程序與無效指標案例。WFP 診斷模組沒有實作封包過濾。
 
 請使用獨立的測試瓶子與 runner 副本；建置和重現方式見上方文件。本專案不包含遊戲檔案、帳號資料或原始日誌。
